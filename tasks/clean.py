@@ -4,7 +4,7 @@ CSV_PATH  = "/opt/airflow/data/ev_dataset.csv"
 CLEAN_PATH = "/opt/airflow/data/ev_cleaned.csv"
 
 def clean_data():
-    print("🧹 Cleaning data...")
+    print(" Cleaning data...")
     df = pd.read_csv(CSV_PATH)
 
     # Clean column names
