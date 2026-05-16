@@ -45,8 +45,9 @@ services:
 
   # ── MySQL (Data warehouse) ──────────────────────
   mysql:
-    image: mysql:8.0          
+    image: mysql:8.0
     container_name: ev_mysql
+    command: --default-authentication-plugin=mysql_native_password  # ← เพิ่มบรรทัดนี้
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -60,6 +61,21 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       retries: 5
+    networks:
+      - ev_net
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: ev_metabase
+    ports:
+      - "3001:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - ev_net
 
@@ -96,6 +112,7 @@ volumes:
   postgres_data:
   mysql_data:
   airflow_logs:
+  metabase_data:
 
 networks:
   ev_net:
