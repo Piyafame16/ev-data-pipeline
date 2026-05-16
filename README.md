@@ -20,29 +20,28 @@ Pipeline สำหรับโหลดข้อมูล Electric Vehicle Marke
 
 ## 🏗️ Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Docker Network (ev_net)                   │
-│                                                                   │
-│   ┌─────────────┐    ┌──────────────────────────────────────┐   │
-│   │  PostgreSQL  │    │           Apache Airflow              │   │
-│   │  (port 5432) │◄───│  ┌────────────┐  ┌───────────────┐  │   │
-│   │  Airflow DB  │    │  │ Webserver  │  │   Scheduler   │  │   │
-│   └─────────────┘    │  │ :8080      │  │  (runs DAGs)  │  │   │
-│                       │  └────────────┘  └───────────────┘  │   │
-│                       └──────────────────────┬───────────────┘   │
-│                                              │ runs                │
-│                                              ▼                    │
-│   ┌─────────────┐    ┌──────────────────────────────────────┐   │
-│   │    MySQL    │◄───│           ev_pipeline DAG             │   │
-│   │  (port 3306)│    │                                       │   │
-│   │   ev_db    │    │  validate_csv → clean_data → load     │   │
-│   └─────────────┘    └──────────────────────────────────────┘   │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
+```mermaid
+flowchart TD
+    CSV["📄 CSV File\nKaggle EV Dataset"]
 
----
+    subgraph DOCKER["🐳 Docker Network (ev_net)"]
+        subgraph AIRFLOW["Apache Airflow"]
+            WEB["🌐 Webserver\nlocalhost:8080"]
+            SCH["⚙️ Scheduler\nรัน DAG ตามเวลา"]
+            PG["🗄️ PostgreSQL\nAirflow metadata"]
+            SCH -- metadata --> PG
+        end
+
+        subgraph DAG["ev_pipeline DAG · รันทุกวัน 06:00 น."]
+            T1["✅ validate_csv\nTask 1\nตรวจสอบ CSV"]
+            T2["🧹 clean_data\nTask 2\nทำความสะอาด"]
+            T3["🚀 load_to_mysql\nTask 3\nLoad เข้า MySQL"]
+            T1 --> T2 --> T3
+        end
+
+        MYSQL["🐬 MySQL 8.0\nev_db · port 3306\ntable: electric_vehicles"]
+    end
+
 
 ## 🔄 Pipeline Flow (DAG)
 
