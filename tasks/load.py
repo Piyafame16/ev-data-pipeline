@@ -16,7 +16,7 @@ def load_to_mysql():
     engine = create_engine(url)
 
     df = pd.read_csv(CLEAN_PATH)
-    print(f"🚀 Loading {len(df)} rows → {TABLE_NAME}")
+    print(f" Loading {len(df)} rows → {TABLE_NAME}")
 
     df.to_sql(TABLE_NAME, con=engine, if_exists="replace", index=False, chunksize=500)
 

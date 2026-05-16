@@ -3,7 +3,7 @@ import pandas as pd
 CSV_PATH = "/opt/airflow/data/ev_dataset.csv"
 
 def validate_csv():
-    print("🔍 Validating CSV...")
+    print("Validating CSV...")
     df = pd.read_csv(CSV_PATH)
 
     assert len(df) > 0, "CSV is empty!"
