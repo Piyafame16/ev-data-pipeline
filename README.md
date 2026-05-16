@@ -3,7 +3,7 @@
 Pipeline สำหรับโหลดข้อมูล Electric Vehicle Market จาก Kaggle  
 เข้า MySQL โดยใช้ Apache Airflow เป็น orchestrator และ Docker เป็น environment
 
-> 📚: Project นี้ออกแบบมาเพื่อสอน Data Engineering pipeline ขั้นพื้นฐาน  
+> Project นี้ออกแบบมาเพื่อทำ Data Engineering pipeline ขั้นพื้นฐาน  
 > ครอบคลุม Docker, Airflow DAG, ETL concepts และ Database connection
 
 ---
@@ -42,29 +42,35 @@ flowchart TD
         MYSQL["🐬 MySQL 8.0\nev_db · port 3306\ntable: electric_vehicles"]
     end
 
+    DBEAVER["🖥️ DBeaver\nดูข้อมูล UI"]
+
+    CSV --> T1
+    SCH -. triggers .-> DAG
+    T3 --> MYSQL
+    DBEAVER -- port 3306 --> MYSQL
+```
+
+---
 
 ## 🔄 Pipeline Flow (DAG)
 
-```
-CSV File (Kaggle)
-      │
-      ▼
-┌─────────────┐     ถ้าไฟล์ว่าง หรือ null เกิน 50%
-│ validate_csv│──── ❌ FAIL → หยุดทันที (ไม่รัน task ถัดไป)
-└──────┬──────┘
-       │ ✅ ผ่าน
-       ▼
-┌─────────────┐
-│  clean_data │  - แปลง column names → snake_case
-│             │  - ลบ duplicate rows
-└──────┬──────┘  - เติม null values
-       │         - บันทึกเป็น ev_cleaned.csv
-       ▼
-┌──────────────┐
-│ load_to_mysql│  - อ่าน ev_cleaned.csv
-│              │  - เชื่อมต่อ MySQL
-└──────────────┘  - load ข้อมูลเข้า table
-                  - verify row count
+```mermaid
+flowchart TD
+    CSV["📄 CSV File (Kaggle)"]
+
+    CSV --> T1
+
+    T1{"✅ validate_csv\nตรวจสอบไฟล์"}
+    T1 -- "❌ FAIL\nไฟล์ว่าง / null เกิน 50%" --> STOP["🛑 หยุดทันที"]
+    T1 -- "✅ ผ่าน" --> T2
+
+    T2["🧹 clean_data\n- แปลง column names → snake_case\n- ลบ duplicate rows\n- เติม null values\n- บันทึกเป็น ev_cleaned.csv"]
+
+    T2 --> T3
+
+    T3["🚀 load_to_mysql\n- อ่าน ev_cleaned.csv\n- เชื่อมต่อ MySQL\n- load ข้อมูลเข้า table\n- verify row count"]
+
+    T3 --> MYSQL["🐬 MySQL\nelectric_vehicles table"]
 ```
 
 ---
@@ -152,5 +158,38 @@ SELECT COUNT(*) FROM electric_vehicles;
 SELECT * FROM electric_vehicles LIMIT 5;
 ```
 
+
 ---
 
+## 🐛 Troubleshooting
+
+| ปัญหา | วิธีแก้ |
+|---|---|
+| `service has no image` | เช็ค `image:` ใน docker-compose.yml ว่าครบทุก service |
+| `pymysql not found` | ตรวจว่ามี `_PIP_ADDITIONAL_REQUIREMENTS` ใน environment |
+| `load_to_mysql` failed | รัน `docker exec airflow_scheduler python3 -c "import pymysql"` |
+| Airflow UI ไม่ขึ้น | รอ 2-3 นาที แล้วรีเฟรช |
+
+ดู log แบบละเอียด:
+```bash
+docker compose logs airflow-scheduler
+docker compose logs ev_mysql
+```
+
+---
+
+## 📦 Tech Stack
+
+- **Python 3.11**
+- **Apache Airflow 2.9.1**
+- **MySQL 8.0**
+- **PostgreSQL 15** (Airflow metadata)
+- **Docker & Docker Compose**
+- **pandas 2.2** / **SQLAlchemy 2.0** / **pymysql 1.1**
+
+---
+
+## 📊 Dataset
+
+**Electric Vehicle Market and Pricing Dataset 2026**  
+Source: [Kaggle](https://www.kaggle.com/datasets/patelris/electric-vehicle-market-and-pricing-dataset-2026)
